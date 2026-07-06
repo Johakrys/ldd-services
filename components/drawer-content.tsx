@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeSwitcher } from '@/components/theme-switcher';
@@ -21,11 +22,14 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
   const c = Colors[scheme];
   const { session, signOut } = useSession();
   const t = useT();
+  const insets = useSafeAreaInsets();
   const border = scheme === 'dark' ? '#232B37' : '#E4E9F0';
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
-      <DrawerContentScrollView {...props} contentContainerStyle={styles.scroll}>
+      <DrawerContentScrollView
+        {...props}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 8 }]}>
         {/* Marca */}
         <View style={[styles.logoBadge]}>
           <Image source={logo} style={styles.logo} contentFit="contain" />
@@ -38,7 +42,7 @@ export function CustomDrawerContent(props: DrawerContentComponentProps) {
       </DrawerContentScrollView>
 
       {/* Pie: tema, usuario, salir */}
-      <View style={[styles.footer, { borderTopColor: border }]}>
+      <View style={[styles.footer, { borderTopColor: border, paddingBottom: insets.bottom + 16 }]}>
         <ThemeSwitcher />
         <LanguageSwitcher />
         <View style={styles.userRow}>
