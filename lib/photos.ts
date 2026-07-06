@@ -1,3 +1,4 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 
 import { supabase } from '@/lib/supabase';
@@ -5,16 +6,25 @@ import { supabase } from '@/lib/supabase';
 export type PhotoType = 'before' | 'after' | 'progress';
 
 const BUCKET = 'job-photos';
+const MAX_WIDTH = 1600;
 
-/** Abre la cámara (o galería si no hay permiso) y devuelve la foto elegida. */
+/** Abre la cámara (o galería si no hay permiso), optimiza la foto y la devuelve. */
 export async function capturePhoto(): Promise<{ uri: string; mimeType: string } | null> {
   const cam = await ImagePicker.requestCameraPermissionsAsync();
   const result = cam.granted
-    ? await ImagePicker.launchCameraAsync({ quality: 0.6 })
-    : await ImagePicker.launchImageLibraryAsync({ quality: 0.6, mediaTypes: ['images'] });
+    ? await ImagePicker.launchCameraAsync({ quality: 1 })
+    : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ['images'] });
   if (result.canceled || !result.assets?.[0]) return null;
   const a = result.assets[0];
-  return { uri: a.uri, mimeType: a.mimeType ?? 'image/jpeg' };
+
+  // Optimiza para ahorrar almacenamiento y acelerar subida/carga: redimensiona
+  // a máx 1600 px de ancho (solo si es más grande) y comprime a JPEG.
+  const actions = a.width && a.width > MAX_WIDTH ? [{ resize: { width: MAX_WIDTH } }] : [];
+  const optimized = await ImageManipulator.manipulateAsync(a.uri, actions, {
+    compress: 0.7,
+    format: ImageManipulator.SaveFormat.JPEG,
+  });
+  return { uri: optimized.uri, mimeType: 'image/jpeg' };
 }
 
 /** Sube una foto al Storage y registra la fila en la tabla photos.
