@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 20.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gluhgdtanztoppsjmsha.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdWhnZHRhbnp0b3Bwc2ptc2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMDM4OTksImV4cCI6MjA5ODg3OTg5OX0.EaPcD6gv2XqNH4CQ5BGQB5PwKAAD2HK2vhjLjytjFR0"
+      }
+    },
+    "production": {
+      "distribution": "internal",
+      "channel": "production",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gluhgdtanztoppsjmsha.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdWhnZHRhbnp0b3Bwc2ptc2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMDM4OTksImV4cCI6MjA5ODg3OTg5OX0.EaPcD6gv2XqNH4CQ5BGQB5PwKAAD2HK2vhjLjytjFR0"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
