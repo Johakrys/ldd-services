@@ -153,9 +153,9 @@ export default function ProyectoForm() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    >
       <Stack.Screen options={{ title: isEdit ? t('projects.edit') : t('projects.new') }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <SelectField
           label={t('projects.client')}
           required

@@ -138,9 +138,9 @@ export default function TareaForm() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    >
       <Stack.Screen options={{ title: isEdit ? t('tasks.edit') : t('projects.new_task') }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <TextField label={t('tasks.title_label')} required value={title} onChangeText={setTitle} placeholder={t('tasks.title_ph')} />
         <TextField
           label={t('projects.description')}

@@ -84,8 +84,8 @@ export default function RegistrarHoras() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <SelectField label={t('hours.employee')} required value={employeeId} options={employees} placeholder={t('hours.choose_emp')} emptyText={t('hours.no_emp')} onChange={setEmployeeId} />
         <SelectField label={t('hours.project')} required value={projectId} options={projects} placeholder={t('hours.choose_proj')} emptyText={t('hours.no_proj')} onChange={setProjectId} />
         <TextField label={t('hours.hours_worked')} required value={hours} onChangeText={setHours} placeholder={t('hours.hours_worked_ph')} keyboardType="numeric" />

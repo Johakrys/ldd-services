@@ -94,9 +94,9 @@ export default function PropiedadForm() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    >
       <Stack.Screen options={{ title: isEdit ? t('props.edit') : t('props.new') }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <TextField label={t('props.label')} required value={label} onChangeText={setLabel} placeholder={t('props.label_ph')} />
         <TextField label={t('props.address')} required value={address} onChangeText={setAddress} placeholder="123 S Main St" />
         <TextField label={t('props.city')} required value={city} onChangeText={setCity} placeholder="Salt Lake City" />

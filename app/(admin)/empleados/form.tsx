@@ -213,9 +213,9 @@ export default function EmpleadoForm() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    >
       <Stack.Screen options={{ title: isEdit ? t('employees.edit') : t('employees.new') }} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <TextField label={t('employees.firstname')} required value={firstName} onChangeText={setFirstName} placeholder="Nombre" />
         <TextField label={t('employees.lastname')} value={lastName} onChangeText={setLastName} placeholder="Apellido" />
 

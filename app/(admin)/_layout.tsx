@@ -20,6 +20,17 @@ const icon =
 
 const hide = { drawerItemStyle: { display: 'none' as const } };
 
+// Al tocar un ítem con stack anidado, resetea a su lista (index) en vez de
+// mostrar la última pantalla abierta (p. ej. el último proyecto).
+const resetToIndex =
+  (name: string) =>
+  ({ navigation }: { navigation: any }) => ({
+    drawerItemPress: (e: { preventDefault: () => void }) => {
+      e.preventDefault();
+      navigation.navigate(name, { screen: 'index' });
+    },
+  });
+
 export default function AdminLayout() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
@@ -57,14 +68,17 @@ export default function AdminLayout() {
         <Drawer.Screen
           name="clientes"
           options={{ title: t('nav.clients'), drawerLabel: t('nav.clients'), drawerIcon: icon('people-outline'), headerShown: false, ...vis('clientes') }}
+          listeners={resetToIndex('clientes')}
         />
         <Drawer.Screen
           name="proyectos"
           options={{ title: t('nav.projects'), drawerLabel: t('nav.projects'), drawerIcon: icon('briefcase-outline'), headerShown: false, ...vis('proyectos') }}
+          listeners={resetToIndex('proyectos')}
         />
         <Drawer.Screen
           name="empleados"
           options={{ title: t('nav.employees'), drawerLabel: t('nav.employees'), drawerIcon: icon('construct-outline'), headerShown: false, ...vis('empleados') }}
+          listeners={resetToIndex('empleados')}
         />
         <Drawer.Screen
           name="pagos"
@@ -73,6 +87,7 @@ export default function AdminLayout() {
         <Drawer.Screen
           name="horas"
           options={{ title: t('nav.hours'), drawerLabel: t('nav.hours'), drawerIcon: icon('time-outline'), headerShown: false, ...vis('horas') }}
+          listeners={resetToIndex('horas')}
         />
         <Drawer.Screen
           name="mis-horas"

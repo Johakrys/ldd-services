@@ -65,8 +65,8 @@ export default function NuevoCliente() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <TextField label={t('clients.name')} required value={name} onChangeText={setName} placeholder="Nombre del cliente" />
         <TextField label={t('clients.company')} value={company} onChangeText={setCompany} placeholder={t('clients.company_ph')} />
         <TextField

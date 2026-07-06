@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useNavigation, useRouter, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -38,6 +38,7 @@ export default function DashboardScreen() {
   const c = Colors[scheme];
   const accent = scheme === 'dark' ? BrandLight : Brand;
   const router = useRouter();
+  const navigation = useNavigation();
   const { role } = useSession();
 
   // El Panel es solo del admin; manager/empleado van a Proyectos.
@@ -101,12 +102,23 @@ export default function DashboardScreen() {
     );
   }
 
-  const tiles: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; go: string }[] = [
-    { label: t('nav.projects'), value: stats.activeProjects, icon: 'briefcase', go: '/proyectos' },
-    { label: t('nav.clients'), value: stats.clients, icon: 'people', go: '/clientes' },
-    { label: t('nav.employees'), value: stats.employees, icon: 'construct', go: '/empleados' },
-    { label: t('dash.pending_pay'), value: stats.pendingPayments, icon: 'cash', go: '/pagos' },
+  const tiles: {
+    label: string;
+    value: number;
+    icon: keyof typeof Ionicons.glyphMap;
+    route: string;
+    nested: boolean;
+  }[] = [
+    { label: t('nav.projects'), value: stats.activeProjects, icon: 'briefcase', route: 'proyectos', nested: true },
+    { label: t('nav.clients'), value: stats.clients, icon: 'people', route: 'clientes', nested: true },
+    { label: t('nav.employees'), value: stats.employees, icon: 'construct', route: 'empleados', nested: true },
+    { label: t('dash.pending_pay'), value: stats.pendingPayments, icon: 'cash', route: 'pagos', nested: false },
   ];
+
+  const openTile = (route: string, nested: boolean) => {
+    // Reset al índice del stack anidado (para no abrir la última pantalla vista).
+    (navigation as any).navigate(route, nested ? { screen: 'index' } : undefined);
+  };
 
   const cardBg = scheme === 'dark' ? '#121821' : '#fff';
   const border = scheme === 'dark' ? '#232B37' : '#E4E9F0';
@@ -125,7 +137,7 @@ export default function DashboardScreen() {
         {tiles.map((tile) => (
           <Pressable
             key={tile.label}
-            onPress={() => router.push(tile.go as never)}
+            onPress={() => openTile(tile.route, tile.nested)}
             style={[styles.tile, { backgroundColor: cardBg, borderColor: border }]}>
             <View style={[styles.tileIcon, { backgroundColor: accent + '1A' }]}>
               <Ionicons name={tile.icon} size={20} color={accent} />
