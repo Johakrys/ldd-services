@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,11 +11,13 @@ import {
   View,
 } from 'react-native';
 
+import { DateRangeFilter } from '@/components/ui/date-range-filter';
 import { ExportButtons } from '@/components/ui/export-buttons';
 import { Brand, BrandLight, Colors } from '@/constants/theme';
 import { useI18n } from '@/ctx/i18n';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { confirm } from '@/lib/confirm';
+import { dayEndExclusiveISO, dayStartISO, firstOfMonth, payFridayStr, rangeLabel } from '@/lib/dates';
 import { reportHtml, shareExcel, sharePdf } from '@/lib/export';
 import { supabase } from '@/lib/supabase';
 
@@ -47,8 +49,13 @@ export default function PagosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
+  // Rango de fechas para la pestaña "Historial".
+  const [histFrom, setHistFrom] = useState<Date>(() => firstOfMonth());
+  const [histTo, setHistTo] = useState<Date>(() => new Date());
+
+  // "Por pagar": lo pendiente actual (no depende de fechas).
   const load = useCallback(async () => {
-    const [totals, wk, proj, pay] = await Promise.all([
+    const [totals, wk, proj] = await Promise.all([
       supabase
         .from('v_employee_hours')
         .select('employee_id, full_name, unpaid_hours, hourly_rate, amount_pending')
@@ -61,10 +68,6 @@ export default function PagosScreen() {
         .from('v_employee_project_hours')
         .select('employee_id, project_name, project_address, project_city, unpaid_hours')
         .order('project_name'),
-      supabase
-        .from('v_employee_payments')
-        .select('employee_id, pay_friday, paid_at, hours, amount')
-        .order('pay_friday', { ascending: false }),
     ]);
     setRows((totals.data as Row[] | null) ?? []);
 
@@ -89,19 +92,45 @@ export default function PagosScreen() {
       });
     });
     setProjects(projMap);
+    setLoading(false);
+  }, []);
+
+  // "Historial": pagos ya realizados, filtrados por el rango de fechas.
+  const loadHistory = useCallback(async (f: Date, tt: Date) => {
+    const [teRes, rateRes] = await Promise.all([
+      supabase
+        .from('time_entries')
+        .select('employee_id, hours, clock_in, paid_at')
+        .eq('is_paid', true)
+        .not('clock_out', 'is', null)
+        .gte('clock_in', dayStartISO(f))
+        .lt('clock_in', dayEndExclusiveISO(tt)),
+      supabase.from('employee_rates').select('employee_id, hourly_rate'),
+    ]);
+
+    const rateMap = new Map<string, number>();
+    (rateRes.data ?? []).forEach((r: any) => rateMap.set(r.employee_id, Number(r.hourly_rate)));
+
+    // Agrupa por empleado y por semana de pago (viernes).
+    const grp: Record<string, Map<string, { hours: number; paid_at: string | null }>> = {};
+    (teRes.data ?? []).forEach((r: any) => {
+      if (!r.employee_id || r.hours == null) return;
+      const friday = payFridayStr(r.clock_in);
+      const m = (grp[r.employee_id] ??= new Map());
+      const cur = m.get(friday) ?? { hours: 0, paid_at: null as string | null };
+      cur.hours += Number(r.hours);
+      if (r.paid_at && (!cur.paid_at || r.paid_at > cur.paid_at)) cur.paid_at = r.paid_at;
+      m.set(friday, cur);
+    });
 
     const payMap: Record<string, Payment[]> = {};
-    (pay.data ?? []).forEach((r) => {
-      if (!r.employee_id || !r.pay_friday) return;
-      (payMap[r.employee_id] ??= []).push({
-        pay_friday: r.pay_friday,
-        paid_at: r.paid_at,
-        hours: Number(r.hours),
-        amount: Number(r.amount),
-      });
+    Object.entries(grp).forEach(([eid, m]) => {
+      const rate = rateMap.get(eid) ?? 0;
+      payMap[eid] = [...m.entries()]
+        .map(([pay_friday, v]) => ({ pay_friday, paid_at: v.paid_at, hours: v.hours, amount: v.hours * rate }))
+        .sort((a, b) => b.pay_friday.localeCompare(a.pay_friday));
     });
     setPayments(payMap);
-    setLoading(false);
   }, []);
 
   useFocusEffect(
@@ -109,6 +138,11 @@ export default function PagosScreen() {
       load();
     }, [load]),
   );
+
+  // Carga el historial al entrar a esa pestaña y cada vez que cambia el rango.
+  useEffect(() => {
+    if (view === 'history') loadHistory(histFrom, histTo);
+  }, [view, histFrom, histTo, loadHistory]);
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -162,10 +196,14 @@ export default function PagosScreen() {
     setBusyKey(null);
   }
 
+  const isHistory = view === 'history';
+  const data = isHistory ? rows.filter((r) => (payments[r.employee_id]?.length ?? 0) > 0) : rows;
+
   const pendingCount = rows.filter((r) => Number(r.amount_pending) > 0).length;
   const totalPaid = Object.values(payments)
     .flat()
     .reduce((s, p) => s + p.amount, 0);
+  const rangeText = rangeLabel(histFrom, histTo, locale);
 
   const pendingHeaders = [t('pay.employee'), t('pay.hours'), t('pay.rate'), t('pay.due')];
   const historyHeaders = [
@@ -202,10 +240,10 @@ export default function PagosScreen() {
   }
 
   async function exportPdf() {
-    if (view === 'history') {
+    if (isHistory) {
       await sharePdf(
         reportHtml({
-          title: t('pay.tab_history'),
+          title: `${t('pay.tab_history')} · ${rangeText}`,
           headers: historyHeaders,
           rows: historyRows().str,
           totalLabel: t('pay.total_paid'),
@@ -228,7 +266,7 @@ export default function PagosScreen() {
   }
 
   async function exportExcel() {
-    if (view === 'history') {
+    if (isHistory) {
       await shareExcel({
         filename: 'historial-pagos',
         sheets: [{ name: t('pay.tab_history'), headers: historyHeaders, rows: historyRows().xlsx }],
@@ -249,12 +287,10 @@ export default function PagosScreen() {
     );
   }
 
-  const isHistory = view === 'history';
-
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <FlatList
-        data={rows}
+        data={data}
         keyExtractor={(item) => item.employee_id}
         contentContainerStyle={styles.list}
         refreshControl={
@@ -263,6 +299,7 @@ export default function PagosScreen() {
             onRefresh={async () => {
               setRefreshing(true);
               await load();
+              if (isHistory) await loadHistory(histFrom, histTo);
               setRefreshing(false);
             }}
             tintColor={accent}
@@ -294,13 +331,27 @@ export default function PagosScreen() {
               })}
             </View>
 
-            {rows.length > 0 ? <ExportButtons onPdf={exportPdf} onExcel={exportExcel} /> : null}
+            {/* Filtro de fechas: solo en Historial */}
+            {isHistory ? (
+              <DateRangeFilter
+                from={histFrom}
+                to={histTo}
+                onChange={(f, tt) => {
+                  setHistFrom(f);
+                  setHistTo(tt);
+                }}
+              />
+            ) : null}
+
+            {data.length > 0 ? <ExportButtons onPdf={exportPdf} onExcel={exportExcel} /> : null}
           </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="cash-outline" size={30} color={c.icon} />
-            <Text style={[styles.emptyText, { color: c.icon }]}>{t('pay.no_emp')}</Text>
+            <Text style={[styles.emptyText, { color: c.icon }]}>
+              {isHistory ? t('pay.no_history') : t('pay.no_emp')}
+            </Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -444,15 +495,6 @@ const styles = StyleSheet.create({
   totalValue: { color: '#fff', fontSize: 34, fontWeight: '800', marginTop: 4 },
   tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: 12, padding: 4, gap: 4 },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 9 },
-  export: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
   row: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   detail: { borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 12, gap: 8 },

@@ -11,10 +11,12 @@ import {
   View,
 } from 'react-native';
 
+import { DateRangeFilter } from '@/components/ui/date-range-filter';
 import { ExportButtons } from '@/components/ui/export-buttons';
 import { Brand, BrandLight, Colors } from '@/constants/theme';
-import { useT } from '@/ctx/i18n';
+import { useI18n } from '@/ctx/i18n';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { dayEndExclusiveISO, dayStartISO, firstOfMonth, rangeLabel } from '@/lib/dates';
 import { reportHtml, shareExcel, sharePdf } from '@/lib/export';
 import { supabase } from '@/lib/supabase';
 
@@ -26,8 +28,11 @@ export default function HorasList() {
   const c = Colors[scheme];
   const accent = scheme === 'dark' ? BrandLight : Brand;
   const router = useRouter();
-  const t = useT();
+  const { t, lang } = useI18n();
+  const locale = lang === 'en' ? 'en-US' : 'es-ES';
 
+  const [from, setFrom] = useState<Date>(() => firstOfMonth());
+  const [to, setTo] = useState<Date>(() => new Date());
   const [rows, setRows] = useState<Row[]>([]);
   const [breakdown, setBreakdown] = useState<Record<string, ProjHours[]>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -35,27 +40,45 @@ export default function HorasList() {
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [totals, detail] = await Promise.all([
-      supabase.from('v_employee_hours').select('employee_id, full_name, total_hours').order('full_name'),
-      supabase
-        .from('v_employee_project_hours')
-        .select('employee_id, project_name, project_address, project_city, total_hours')
-        .order('project_name'),
-    ]);
-    setRows((totals.data as Row[] | null) ?? []);
-    const map: Record<string, ProjHours[]> = {};
-    (detail.data ?? []).forEach((r) => {
+    // Solo las horas del rango elegido (clock_in entre desde y hasta).
+    const { data } = await supabase
+      .from('time_entries')
+      .select('employee_id, hours, employees(first_name, last_name), projects(name, properties(address, city))')
+      .not('clock_out', 'is', null)
+      .gte('clock_in', dayStartISO(from))
+      .lt('clock_in', dayEndExclusiveISO(to));
+
+    const totals = new Map<string, Row>();
+    const bdMap: Record<string, Map<string, ProjHours>> = {};
+    (data ?? []).forEach((r: any) => {
       if (!r.employee_id) return;
-      (map[r.employee_id] ??= []).push({
-        project_name: r.project_name ?? '—',
-        address: [r.project_address, r.project_city].filter(Boolean).join(', ') || null,
-        total_hours: Number(r.total_hours),
-      });
+      const h = r.hours == null ? 0 : Number(r.hours);
+      const name = `${r.employees?.first_name ?? ''} ${r.employees?.last_name ?? ''}`.trim() || '—';
+      const row = totals.get(r.employee_id) ?? { employee_id: r.employee_id, full_name: name, total_hours: 0 };
+      row.total_hours += h;
+      totals.set(r.employee_id, row);
+
+      const projName = r.projects?.name ?? '—';
+      const address = [r.projects?.properties?.address, r.projects?.properties?.city].filter(Boolean).join(', ') || null;
+      const m = (bdMap[r.employee_id] ??= new Map());
+      const key = projName + '|' + (address ?? '');
+      const cur = m.get(key) ?? { project_name: projName, address, total_hours: 0 };
+      cur.total_hours += h;
+      m.set(key, cur);
+    });
+
+    setRows(
+      [...totals.values()].filter((r) => r.total_hours > 0).sort((a, b) => a.full_name.localeCompare(b.full_name)),
+    );
+    const map: Record<string, ProjHours[]> = {};
+    Object.entries(bdMap).forEach(([id, m]) => {
+      map[id] = [...m.values()].sort((a, b) => a.project_name.localeCompare(b.project_name));
     });
     setBreakdown(map);
     setLoading(false);
-  }, []);
+  }, [from, to]);
 
+  // Se recarga al enfocar la pantalla y cada vez que cambia el rango de fechas.
   useFocusEffect(
     useCallback(() => {
       load();
@@ -92,11 +115,18 @@ export default function HorasList() {
   }
 
   const headers = [t('hours.employee'), t('hours.project'), t('hours.hours')];
+  const rangeText = rangeLabel(from, to, locale);
 
   async function exportPdf() {
     const { str, total } = flatRows();
     await sharePdf(
-      reportHtml({ title: t('hours.report_title'), headers, rows: str, totalLabel: t('hours.total'), totalValue: fmt(total) }),
+      reportHtml({
+        title: `${t('hours.report_title')} · ${rangeText}`,
+        headers,
+        rows: str,
+        totalLabel: t('hours.total'),
+        totalValue: fmt(total),
+      }),
       'Horas trabajadas',
     );
   }
@@ -132,11 +162,17 @@ export default function HorasList() {
           />
         }
         ListHeaderComponent={
-          rows.length > 0 ? (
-            <View style={{ marginBottom: 4 }}>
-              <ExportButtons onPdf={exportPdf} onExcel={exportExcel} />
-            </View>
-          ) : null
+          <View style={{ gap: 10, marginBottom: 4 }}>
+            <DateRangeFilter
+              from={from}
+              to={to}
+              onChange={(f, tt) => {
+                setFrom(f);
+                setTo(tt);
+              }}
+            />
+            {rows.length > 0 ? <ExportButtons onPdf={exportPdf} onExcel={exportExcel} /> : null}
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -209,16 +245,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 16, paddingBottom: 100, gap: 10 },
-  export: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingVertical: 12,
-    marginBottom: 4,
-  },
   row: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
   name: { fontSize: 16, fontWeight: '600', flex: 1 },

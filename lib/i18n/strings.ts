@@ -291,6 +291,12 @@ const es = {
   'pay.amount': 'Monto',
   'props.client': 'Cliente',
 
+  // Filtro de fechas
+  'filter.period': 'Periodo',
+  'filter.from': 'Desde',
+  'filter.to': 'Hasta',
+  'filter.this_month': 'Este mes',
+
   // Estados de proyecto
   'status.lead': 'Prospecto',
   'status.quoted': 'Cotizado',
@@ -591,6 +597,12 @@ const en: Record<keyof typeof es, string> = {
   'pay.paid_date': 'Payment date',
   'pay.amount': 'Amount',
   'props.client': 'Client',
+
+  // Date filter
+  'filter.period': 'Period',
+  'filter.from': 'From',
+  'filter.to': 'To',
+  'filter.this_month': 'This month',
 
   'status.lead': 'Lead',
   'status.quoted': 'Quoted',
