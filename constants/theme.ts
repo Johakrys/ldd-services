@@ -5,23 +5,34 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+/** Color corporativo de LD&D Services. */
+export const Brand = '#004aad';
+/** Variante más clara para modo oscuro (mejor contraste). */
+export const BrandLight = '#4d8dff';
+
+const tintColorLight = Brand;
+const tintColorDark = BrandLight;
 
 export const Colors = {
   light: {
     text: '#11181C',
-    background: '#fff',
+    background: '#F4F6FA',
+    card: '#FFFFFF',
+    border: '#E4E9F0',
+    inputBg: '#F1F4F8',
     tint: tintColorLight,
-    icon: '#687076',
+    icon: '#5B6673',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
   },
   dark: {
     text: '#ECEDEE',
-    background: '#151718',
+    background: '#0B0F17',
+    card: '#121821',
+    border: '#232B37',
+    inputBg: '#1A212C',
     tint: tintColorDark,
-    icon: '#9BA1A6',
+    icon: '#8A94A2',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
   },

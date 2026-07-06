@@ -1,21 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useColorScheme as useRNColorScheme } from 'react-native';
-
-/**
- * To support static rendering, this value needs to be re-calculated on the client side for web
- */
-export function useColorScheme() {
-  const [hasHydrated, setHasHydrated] = useState(false);
-
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
-  const colorScheme = useRNColorScheme();
-
-  if (hasHydrated) {
-    return colorScheme;
-  }
-
-  return 'light';
-}
+// En web el esquema efectivo también sale de la preferencia del usuario.
+// useResolvedScheme usa useEffect internamente (contexto), por lo que en el
+// primer render estático toma el valor por defecto y se ajusta en el cliente.
+export { useResolvedScheme as useColorScheme } from '@/ctx/theme';
