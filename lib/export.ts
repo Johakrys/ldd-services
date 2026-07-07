@@ -33,9 +33,26 @@ function tableHtml(t: Table): string {
   return `${heading}<table><thead><tr>${head}</tr></thead><tbody>${body}${total}</tbody></table>`;
 }
 
-/** HTML de un reporte con una o varias tablas, con la marca LD&D. */
-export function reportTables(opts: { title: string; subtitle?: string; tables: Table[] }): string {
-  const { title, subtitle, tables } = opts;
+type Photo = { caption: string; dataUri: string };
+
+/** HTML de un reporte con una o varias tablas (y opcionalmente fotos), marca LD&D. */
+export function reportTables(opts: {
+  title: string;
+  subtitle?: string;
+  tables: Table[];
+  photos?: Photo[];
+  photosHeading?: string;
+}): string {
+  const { title, subtitle, tables, photos, photosHeading } = opts;
+  const gallery =
+    photos && photos.length
+      ? `<h2>${escapeHtml(photosHeading ?? 'Fotos')}</h2><div class="gallery">${photos
+          .map(
+            (p) =>
+              `<figure class="ph"><img src="${p.dataUri}"/><figcaption>${escapeHtml(p.caption)}</figcaption></figure>`,
+          )
+          .join('')}</div>`
+      : '';
   return `<!doctype html><html><head><meta charset="utf-8">
   <style>
     body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#11181C;padding:28px}
@@ -47,10 +64,15 @@ export function reportTables(opts: { title: string; subtitle?: string; tables: T
     td{padding:10px;border-bottom:1px solid #E4E9F0}
     tr:nth-child(even) td{background:#F4F6FA}
     .total td{font-weight:700;background:#EAF0FA;border-top:2px solid ${BRAND}}
+    .gallery{display:flex;flex-wrap:wrap;gap:16px}
+    .ph{width:47%;margin:0;page-break-inside:avoid;break-inside:avoid}
+    .ph img{width:100%;border:1px solid #E4E9F0;border-radius:8px}
+    .ph figcaption{font-size:11px;color:#5B6673;margin-top:5px;line-height:1.4}
   </style></head><body>
     <h1>LD&amp;D Services</h1>
     <p class="sub">${escapeHtml(title)}${subtitle ? ' · ' + escapeHtml(subtitle) : ''}</p>
     ${tables.map(tableHtml).join('')}
+    ${gallery}
   </body></html>`;
 }
 

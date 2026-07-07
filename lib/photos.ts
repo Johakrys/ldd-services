@@ -82,3 +82,22 @@ export async function signedPhotoUrl(path: string): Promise<string | null> {
   const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
   return data?.signedUrl ?? null;
 }
+
+/** Descarga la foto y la devuelve como data URI (base64) para incrustarla en un PDF. */
+export async function photoDataUri(path: string): Promise<string | null> {
+  const url = await signedPhotoUrl(path);
+  if (!url) return null;
+  try {
+    const blob = await fetch(url).then((r) => r.blob());
+    const FR: any = (globalThis as any).FileReader;
+    if (!FR) return null;
+    return await new Promise<string | null>((resolve) => {
+      const reader = new FR();
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}

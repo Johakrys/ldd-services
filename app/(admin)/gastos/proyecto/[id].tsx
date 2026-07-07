@@ -11,10 +11,13 @@ import {
   View,
 } from 'react-native';
 
+import { ExportButtons } from '@/components/ui/export-buttons';
 import { Brand, BrandLight, Colors } from '@/constants/theme';
 import { useI18n } from '@/ctx/i18n';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { reportTables, shareExcel, sharePdf } from '@/lib/export';
 import { money } from '@/lib/money';
+import { photoDataUri } from '@/lib/photos';
 import { supabase } from '@/lib/supabase';
 
 type Expense = { id: string; amount: number; reason: string; spent_at: string; receipt_path: string | null };
@@ -33,6 +36,7 @@ export default function GastosProyecto() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     const [proj, exp] = await Promise.all([
@@ -77,6 +81,52 @@ export default function GastosProyecto() {
 
   const total = expenses.reduce((s, e) => s + e.amount, 0);
 
+  async function exportPdf() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const headers = [t('gastos.reason'), t('gastos.date'), t('gastos.amount')];
+      const rows = expenses.map((e) => [e.reason, fmtDate(e.spent_at), money(e.amount)]);
+      // Incrusta la foto de cada factura que la tenga.
+      const photos: { caption: string; dataUri: string }[] = [];
+      for (const e of expenses) {
+        if (!e.receipt_path) continue;
+        const uri = await photoDataUri(e.receipt_path);
+        if (uri) photos.push({ caption: `${e.reason} · ${money(e.amount)} · ${fmtDate(e.spent_at)}`, dataUri: uri });
+      }
+      const html = reportTables({
+        title: `${t('nav.expenses')} — ${title}`,
+        subtitle: clientName || undefined,
+        tables: [{ headers, rows, totalLabel: t('gastos.total'), totalValue: money(total) }],
+        photos,
+        photosHeading: t('gastos.receipt'),
+      });
+      await sharePdf(html, 'Gastos');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function exportExcel() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const headers = [t('gastos.reason'), t('gastos.date'), t('gastos.amount'), t('gastos.receipt')];
+      const rows = expenses.map((e) => [
+        e.reason,
+        fmtDate(e.spent_at),
+        Number(e.amount),
+        e.receipt_path ? '✓' : '',
+      ]);
+      await shareExcel({
+        filename: ('gastos-' + (title || 'proyecto')).replace(/[^a-z0-9-]+/gi, '-').toLowerCase(),
+        sheets: [{ name: t('nav.expenses').slice(0, 31), headers, rows }],
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: c.background }]}>
@@ -105,12 +155,23 @@ export default function GastosProyecto() {
           />
         }
         ListHeaderComponent={
-          <View style={[styles.totalCard, { backgroundColor: accent }]}>
-            <Text style={styles.totalLabel}>
-              {clientName ? clientName + ' · ' : ''}
-              {t('gastos.total')}
-            </Text>
-            <Text style={styles.totalValue}>{money(total)}</Text>
+          <View style={{ gap: 10, marginBottom: 4 }}>
+            <View style={[styles.totalCard, { backgroundColor: accent }]}>
+              <Text style={styles.totalLabel}>
+                {clientName ? clientName + ' · ' : ''}
+                {t('gastos.total')}
+              </Text>
+              <Text style={styles.totalValue}>{money(total)}</Text>
+            </View>
+            {expenses.length > 0 ? (
+              exporting ? (
+                <View style={styles.exportBusy}>
+                  <ActivityIndicator color={accent} size="small" />
+                </View>
+              ) : (
+                <ExportButtons onPdf={exportPdf} onExcel={exportExcel} />
+              )
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -152,6 +213,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { padding: 16, paddingBottom: 100, gap: 10 },
   totalCard: { borderRadius: 16, padding: 20, marginBottom: 6 },
+  exportBusy: { alignItems: 'center', paddingVertical: 10 },
   totalLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600' },
   totalValue: { color: '#fff', fontSize: 30, fontWeight: '800', marginTop: 4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1, borderRadius: 14 },
