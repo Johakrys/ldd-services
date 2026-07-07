@@ -42,7 +42,7 @@ export default function AdminLayout() {
   // admin ve todo; manager/empleado solo: Proyectos, Mis horas, Mi pago.
   // Todos ven "Cuenta".
   const shown = isAdmin
-    ? ['index', 'clientes', 'proyectos', 'empleados', 'pagos', 'horas', 'cuenta']
+    ? ['index', 'clientes', 'proyectos', 'empleados', 'pagos', 'gastos', 'horas', 'cuenta']
     : ['proyectos', 'mis-horas', 'mi-pago', 'cuenta'];
   const vis = (name: string) => (shown.includes(name) ? {} : hide);
 
@@ -83,6 +83,11 @@ export default function AdminLayout() {
         <Drawer.Screen
           name="pagos"
           options={{ title: t('nav.payments'), drawerLabel: t('nav.payments'), drawerIcon: icon('cash-outline'), ...vis('pagos') }}
+        />
+        <Drawer.Screen
+          name="gastos"
+          options={{ title: t('nav.expenses'), drawerLabel: t('nav.expenses'), drawerIcon: icon('receipt-outline'), headerShown: false, ...vis('gastos') }}
+          listeners={resetToIndex('gastos')}
         />
         <Drawer.Screen
           name="horas"

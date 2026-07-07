@@ -9,8 +9,10 @@ type Props = {
   loading?: boolean;
   disabled?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
-  variant?: 'solid' | 'ghost';
+  variant?: 'solid' | 'ghost' | 'danger';
 };
+
+const DANGER = '#E5544B';
 
 export function PrimaryButton({
   title,
@@ -22,6 +24,8 @@ export function PrimaryButton({
 }: Props) {
   const blocked = disabled || loading;
   const ghost = variant === 'ghost';
+  const fg = ghost ? Brand : '#fff';
+  const bg = variant === 'danger' ? { backgroundColor: DANGER } : { backgroundColor: Brand };
 
   return (
     <Pressable
@@ -29,15 +33,15 @@ export function PrimaryButton({
       disabled={blocked}
       style={({ pressed }) => [
         styles.button,
-        ghost ? styles.ghost : { backgroundColor: Brand },
+        ghost ? styles.ghost : bg,
         { opacity: blocked ? 0.5 : pressed ? 0.85 : 1 },
       ]}>
       {loading ? (
-        <ActivityIndicator color={ghost ? Brand : '#fff'} />
+        <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon} size={19} color={ghost ? Brand : '#fff'} /> : null}
-          <Text style={[styles.text, { color: ghost ? Brand : '#fff' }]}>{title}</Text>
+          {icon ? <Ionicons name={icon} size={19} color={fg} /> : null}
+          <Text style={[styles.text, { color: fg }]}>{title}</Text>
         </>
       )}
     </Pressable>

@@ -59,6 +59,24 @@ export async function uploadJobPhoto(opts: {
   return { error: null };
 }
 
+/** Sube la foto de una factura (bucket job-photos, prefijo expenses/) y
+ *  devuelve la ruta guardada para asociarla al gasto. */
+export async function uploadExpenseReceipt(opts: {
+  projectId: string;
+  uri: string;
+  mimeType: string;
+}): Promise<{ path: string | null; error: string | null }> {
+  const ext = opts.mimeType.includes('png') ? 'png' : 'jpg';
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const path = `expenses/${opts.projectId}/${stamp}.${ext}`;
+  const arraybuffer = await fetch(opts.uri).then((r) => r.arrayBuffer());
+  const up = await supabase.storage
+    .from(BUCKET)
+    .upload(path, arraybuffer, { contentType: opts.mimeType, upsert: false });
+  if (up.error) return { path: null, error: up.error.message };
+  return { path, error: null };
+}
+
 /** URL firmada temporal para mostrar una foto privada. */
 export async function signedPhotoUrl(path: string): Promise<string | null> {
   const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600);
