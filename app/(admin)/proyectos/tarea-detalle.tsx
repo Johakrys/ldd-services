@@ -113,15 +113,8 @@ export default function TareaDetalle() {
   }, [openEntry]);
 
   async function startTask() {
-    if (!job || !empId) {
-      setError(t('tasks.no_ficha'));
-      return;
-    }
-    // Las horas se registran para los empleados ASIGNADOS a la tarea,
-    // no para quien la inicia. Un manager registra para todos los asignados;
-    // un empleado solo para sí mismo.
-    const logFor = canManage ? assigneeIds : assigneeIds.filter((id) => id === empId);
-    if (logFor.length === 0) {
+    if (!job) return;
+    if (assigneeIds.length === 0) {
       setError(t('tasks.no_assignees'));
       return;
     }
@@ -135,12 +128,10 @@ export default function TareaDetalle() {
       uri: photo.uri, mimeType: photo.mimeType, uploadedBy: empId, takenAt: now,
     });
     if (up.error) return fail(t('tasks.photo_err') + up.error);
-    const rows = logFor.map((eid) => ({
-      job_id: job.id, project_id: job.project_id, employee_id: eid, clock_in: now,
-    }));
-    const te = await supabase.from('time_entries').insert(rows);
-    if (te.error) return fail(te.error.message);
-    await supabase.from('jobs').update({ status: 'in_progress', actual_start: now }).eq('id', job.id);
+    // Abre horas para TODOS los asignados (2 trabajadores => 2 h al proyecto),
+    // sin importar quién inicie. La función valida el permiso en la base.
+    const { error } = await supabase.rpc('start_task', { p_job_id: job.id });
+    if (error) return fail(error.message);
     await load();
     setBusy(false);
   }
@@ -157,10 +148,9 @@ export default function TareaDetalle() {
       uri: photo.uri, mimeType: photo.mimeType, uploadedBy: empId, takenAt: now,
     });
     if (up.error) return fail(t('tasks.photo_err') + up.error);
-    // Cierra todas las sesiones abiertas de la tarea (de todos los asignados).
-    const te = await supabase.from('time_entries').update({ clock_out: now }).eq('job_id', job.id).is('clock_out', null);
-    if (te.error) return fail(te.error.message);
-    await supabase.from('jobs').update({ status: 'completed', actual_end: now }).eq('id', job.id);
+    // Cierra la sesión de todos los asignados y marca la tarea como completada.
+    const { error } = await supabase.rpc('finish_task', { p_job_id: job.id });
+    if (error) return fail(error.message);
     await load();
     setBusy(false);
   }

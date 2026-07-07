@@ -1347,10 +1347,12 @@ export type Database = {
       can_manage_project: { Args: { pid: string }; Returns: boolean }
       can_view_project: { Args: { pid: string }; Returns: boolean }
       current_employee_id: { Args: never; Returns: string }
+      finish_task: { Args: { p_job_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_assigned_to: { Args: { pid: string }; Returns: boolean }
       is_assigned_to_job: { Args: { jid: string }; Returns: boolean }
       is_manager_of: { Args: { pid: string }; Returns: boolean }
+      start_task: { Args: { p_job_id: string }; Returns: undefined }
       update_my_email: { Args: { p_email: string }; Returns: undefined }
       verify_my_password: { Args: { p_password: string }; Returns: boolean }
     }
