@@ -30,7 +30,10 @@ Copy-Item $cloud $envFile -Force
 Write-Host "Publicando con la config de PRODUCCION (nube)..." -ForegroundColor Cyan
 
 try {
-  eas update --branch preview -m $Message
+  # --clear-cache es OBLIGATORIO: sin él, el empaquetador reutiliza el valor
+  # viejo de EXPO_PUBLIC_SUPABASE_URL cacheado (p. ej. localhost) y la app
+  # queda sin conexión aunque el .env apunte a la nube.
+  eas update --branch preview --clear-cache -m $Message
 }
 finally {
   # Restaura tu .env local pase lo que pase.
