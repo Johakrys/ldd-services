@@ -4,7 +4,7 @@
     "slug": "ldd-services",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo-bg.png",
+    "icon": "./assets/images/icon-app.png",
     "scheme": "lddservices",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -15,7 +15,7 @@
       "package": "com.lddlandscape.app",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/logo.png"
+        "foregroundImage": "./assets/images/icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
