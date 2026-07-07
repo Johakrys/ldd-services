@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { WebTitle } from '@/components/web-title';
 import { Brand, BrandLight, Colors } from '@/constants/theme';
 import { SessionProvider, useSession } from '@/ctx/auth';
 import { I18nProvider } from '@/ctx/i18n';
@@ -50,6 +51,7 @@ function ThemedNavigation() {
   return (
     <ThemeProvider value={navTheme}>
       <RootNavigator />
+      <WebTitle />
       <StatusBar style="auto" />
     </ThemeProvider>
   );
